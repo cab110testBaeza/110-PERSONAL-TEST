@@ -139,6 +139,19 @@ p { margin: 0; }
 .bigstars { display: flex; gap: 8px; }
 .endbtns { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
 
+.topright { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.voicebtn { display: inline-flex; align-items: center; gap: 6px; background: var(--card); border: 3px solid var(--ink); border-radius: 999px; padding: 4px 14px 4px 10px; font-family: var(--font-display); font-weight: 600; font-size: 17px; cursor: pointer; }
+.voicebtn svg { width: 20px; height: 20px; color: var(--sky); }
+.voicepanel { background: var(--card); border: 3px solid var(--ink); border-radius: 24px; padding: 16px 18px; display: grid; gap: 8px; max-width: 540px; }
+.voicepanel h2 { font-size: 22px; }
+.voicepanel label { font-weight: 800; font-size: 13px; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-soft); margin-top: 4px; }
+.voicepanel select { font: inherit; font-weight: 700; padding: 10px 12px; border: 3px solid var(--ink); border-radius: 14px; background: var(--paper); color: var(--ink); max-width: 100%; min-width: 0; }
+.voicepanel input[type="range"] { width: 100%; accent-color: var(--sky); }
+.vp-note { font-size: 14px; font-weight: 700; color: var(--ink-soft); }
+.vp-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.media.small .ico { width: 46px; height: 46px; }
+.misspell { letter-spacing: .04em; }
+
 @media (max-width: 480px) {
   .opts.pics { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
   .opts.pics .opt { padding: 8px 4px; }
@@ -158,8 +171,20 @@ p { margin: 0; }
       <svg viewBox="0 0 80 80" aria-hidden="true"><path d="M30 20 Q30 8 40 8 Q50 8 50 20" fill="none" stroke="#2B2B40" stroke-width="5"/><rect x="16" y="20" width="48" height="54" rx="15" fill="#E8473B" stroke="#2B2B40" stroke-width="4"/><rect x="25" y="45" width="30" height="19" rx="6" fill="#F6C445" stroke="#2B2B40" stroke-width="3.5"/><path d="M25 34 L55 34" stroke="#2B2B40" stroke-width="3.5" stroke-linecap="round"/></svg>
       <span>La mochila de Julia</span>
     </button>
-    <div class="starpill" id="starpill" aria-live="polite"></div>
+    <div class="topright">
+      <button class="voicebtn" id="voicebtn" aria-expanded="false" aria-controls="voicepanel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Voz</span></button>
+      <div class="starpill" id="starpill" aria-live="polite"></div>
+    </div>
   </header>
+  <section class="voicepanel" id="voicepanel" hidden>
+    <h2>Voz en inglés</h2>
+    <p class="vp-note" id="vp-note">Buscando voces en este dispositivo…</p>
+    <label for="voice">Voz</label>
+    <select id="voice"></select>
+    <label for="rate">Velocidad · <span id="rate-label">pausada</span></label>
+    <input type="range" id="rate" min="0.55" max="1" step="0.05" value="0.75">
+    <div class="vp-actions"><button class="btn2" id="voicetest">Probar voz</button><button class="btn2" id="voiceclose">Cerrar</button></div>
+  </section>
   <main id="view"></main>
 </div>
 
@@ -283,6 +308,56 @@ p { margin: 0; }
   var NUMS_ES = ['uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez'];
   var DAYS = [['Monday', 'lunes'], ['Tuesday', 'martes'], ['Wednesday', 'miércoles'], ['Thursday', 'jueves'], ['Friday', 'viernes'], ['Saturday', 'sábado'], ['Sunday', 'domingo']];
 
+  /* ---------- question generators (new random questions every round) ---------- */
+  I.blueBall = '<circle cx="40" cy="40" r="26" fill="#2F7DD1" ' + K + '/><path d="M18 40 Q40 26 62 40" stroke="#FFFFFF" stroke-width="3" fill="none"/>';
+  function rnd(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+  function nearNums(n) { return [n].concat(shuffle([n - 2, n - 1, n + 1, n + 2].filter(function (k) { return k >= 1 && k <= 10; })).slice(0, 2)); }
+  function genCount() {
+    var n = rnd(1, 10), p = pick([I.apple, I.banana, I.pencil, I.egg, I.orange, I.carrot, I.blueBall]);
+    return { key: 'count' + n, q: 'How many?', say: 'How many?', es: 'Cuenta y elige', media: rep(p, n), mediaCls: n > 5 ? 'small' : '', options: nearNums(n).map(function (k) { return NUMS[k - 1]; }), a: NUMS[n - 1] };
+  }
+  function genNumSeq() {
+    var s = rnd(0, 7);
+    return { key: 'seq' + s, q: NUMS[s] + ', ' + NUMS[s + 1] + ', …', say: NUMS[s] + ', ' + NUMS[s + 1] + '…', es: '¿Qué número va después?', options: [NUMS[s + 2]].concat(shuffle(NUMS.filter(function (w, i) { return i < s || i > s + 2; })).slice(0, 2)), a: NUMS[s + 2], sayAfter: NUMS[s] + ', ' + NUMS[s + 1] + ', ' + NUMS[s + 2] + '!' };
+  }
+  function genWordDigit() {
+    var n = rnd(1, 10);
+    return { key: 'wd' + n, q: NUMS[n - 1], big: true, es: '¿Qué número es? Lee la palabra.', options: nearNums(n).map(String), a: String(n), sayAfter: NUMS[n - 1] };
+  }
+  function genDaySeq() {
+    var s = rnd(0, 4), ans = DAYS[s + 2][0];
+    return { key: 'day' + s, q: DAYS[s][0] + ', ' + DAYS[s + 1][0] + ', …', say: DAYS[s][0] + ', ' + DAYS[s + 1][0] + '…', es: '¿Qué día va después?', options: [ans].concat(shuffle(DAYS.filter(function (d, i) { return i < s || i > s + 2; }).map(function (d) { return d[0]; })).slice(0, 2)), a: ans };
+  }
+  var COLOUR_OF = [[I.banana, 'yellow'], [I.apple, 'red'], [I.carrot, 'orange'], [I.grapes, 'purple'], [I.egg, 'white'], [I.pet, 'brown'], [I.chair, 'green'], [I.blueBall, 'blue']];
+  function genColourOf() {
+    var c = pick(COLOUR_OF);
+    var others = shuffle(COLORS.map(function (x) { return x[0]; }).filter(function (w) { return w !== c[1]; })).slice(0, 2);
+    return { key: 'col' + c[1], q: 'What colour is it?', say: 'What colour is it?', es: '¿De qué color es?', media: svg(c[0]), options: [c[1]].concat(others), a: c[1], sayAfter: "It's " + c[1] + '.' };
+  }
+  var PEOPLE = [[I.dad, "He's", 'my dad'], [I.mum, "She's", 'my mum'], [I.brother, "He's", 'my brother'], [I.sister, "She's", 'my sister'], [I.boy, "He's", 'a boy'], [I.girl, "She's", 'a girl'], [I.man, "He's", 'a man'], [I.woman, "She's", 'a woman']];
+  function genHeShe() {
+    var p = pick(PEOPLE);
+    return { key: 'hs' + p[2], q: '… ' + p[2] + '.', es: "¿He's (chico) o She's (chica)?", media: svg(p[0]), options: ["He's", "She's"], a: p[1], sayAfter: p[1] + ' ' + p[2] + '.', fixed: true };
+  }
+  function genWho() {
+    var p = pick(PEOPLE), s = function (x) { return x[1] + ' ' + x[2] + '.'; };
+    var others = shuffle(PEOPLE.filter(function (x) { return x !== p; })).slice(0, 2);
+    return { key: 'who' + p[2], q: 'Who is it?', say: 'Who is it?', es: '¿Quién es? Lee y elige.', media: svg(p[0]), options: [s(p)].concat(others.map(s)), a: s(p) };
+  }
+  function cake(n) {
+    var s = '<rect x="14" y="46" width="92" height="36" rx="8" fill="#F48FB8" ' + K + '/><path d="M16 58 Q27 66 38 58 Q49 66 60 58 Q71 66 82 58 Q93 66 104 58" stroke="#FFFFFF" stroke-width="4" fill="none" stroke-linecap="round"/>';
+    var w = 84 / n, cols = ['#2F7DD1', '#3FAE5A', '#F39234', '#8B5CC4', '#E8473B'];
+    for (var i = 0; i < n; i++) {
+      var x = 18 + w * i + w / 2;
+      s += '<rect x="' + (x - 3) + '" y="24" width="6" height="22" rx="2" fill="' + cols[i % cols.length] + '" stroke="#2B2B40" stroke-width="2"/><path d="M' + x + ' 9 Q' + (x + 5) + ' 17 ' + x + ' 22 Q' + (x - 5) + ' 17 ' + x + ' 9Z" fill="#F6C445" stroke="#2B2B40" stroke-width="1.5"/>';
+    }
+    return svg(s, '0 0 120 90', 'scene');
+  }
+  function genAge() {
+    var n = rnd(4, 8);
+    return { key: 'age' + n, q: 'How old are you?', say: 'How old are you?', es: 'Cuenta las velas y contesta.', media: cake(n), options: nearNums(n).map(function (k) { return "I'm " + NUMS[k - 1] + '.'; }), a: "I'm " + NUMS[n - 1] + '.' };
+  }
+
   var T = [
     {
       id: 'repaso', area: 'en', n: 1, name: 'Repaso inicial', sub: 'Colores, números, días', tint: '#FFF1C7', icon: I.smile,
@@ -293,11 +368,23 @@ p { margin: 0; }
       phrases: [["Hello! Good morning!", "¡Hola! ¡Buenos días!"], ["What's your name?", "¿Cómo te llamas?"], ["I'm Julia.", "Soy Julia."], ["Goodbye!", "¡Adiós!"]],
       quiz: [
         { q: "What's your name?", say: "What's your name?", es: '¿Qué contestas?', options: ["I'm Julia.", "Goodbye!", "Seven."], a: "I'm Julia." },
-        { q: 'Monday, Tuesday, …', es: '¿Qué día va después?', options: ['Wednesday', 'Sunday', 'Friday'], a: 'Wednesday' },
-        { q: 'How many?', say: 'How many?', es: '¿Cuántos hay?', media: rep(blob('#8B5CC4'), 4), options: ['four', 'three', 'five'], a: 'four' },
+        { q: "Hello! What's your name?", say: "Hello! What's your name?", es: 'Una niña nueva te saluda. ¿Qué contestas?', options: ["Hello! I'm Julia.", "Goodbye! I'm Julia.", "Monday!"], a: "Hello! I'm Julia." },
         { q: 'Good morning!', say: 'Good morning!', es: 'Tu profe te saluda. ¿Qué contestas?', options: ['Good morning!', 'Goodbye!', 'Ten.'], a: 'Good morning!' },
-        { q: 'Saturday and …', es: '¿Qué día completa el fin de semana?', options: ['Sunday', 'Monday', 'Thursday'], a: 'Sunday' }
+        { q: 'Llegas al cole por la mañana. ¿Qué dices?', options: ['Good morning!', 'Goodbye!', 'Sunday!'], a: 'Good morning!' },
+        { q: 'Te vas a casa al terminar el cole. ¿Qué dices?', options: ['Goodbye!', 'Good morning!', 'Hello!'], a: 'Goodbye!' },
+        { q: 'Ves a una amiga en el parque. ¿Qué dices?', options: ['Hello!', 'Goodbye!', 'Ten!'], a: 'Hello!' },
+        { q: 'Saturday and …', es: '¿Qué día completa el fin de semana?', options: ['Sunday', 'Monday', 'Thursday'], a: 'Sunday' },
+        { q: '¿Qué días no hay cole?', options: ['Saturday and Sunday', 'Monday and Tuesday', 'Wednesday and Friday'], a: 'Saturday and Sunday' },
+        { q: 'Ayer fue Monday. ¿Qué día es hoy?', options: ['Tuesday', 'Sunday', 'Thursday'], a: 'Tuesday' },
+        { q: 'Mañana es Friday. ¿Qué día es hoy?', options: ['Thursday', 'Saturday', 'Monday'], a: 'Thursday' },
+        { q: '¿Cuántos días tiene la semana?', options: ['seven', 'five', 'ten'], a: 'seven' },
+        { q: 'El color del cielo', es: '¿Cómo se dice en inglés?', options: ['blue', 'brown', 'pink'], a: 'blue' },
+        { q: 'El color de la hierba', es: '¿Cómo se dice en inglés?', options: ['green', 'red', 'black'], a: 'green' },
+        { q: 'El color de la nieve', es: '¿Cómo se dice en inglés?', options: ['white', 'yellow', 'purple'], a: 'white' },
+        { q: '¿Cuántos dedos tienes en una mano?', options: ['five', 'four', 'ten'], a: 'five' },
+        { q: '¿Cuántos dedos tienes en las dos manos?', options: ['ten', 'eight', 'five'], a: 'ten' }
       ],
+      gens: [genCount, genNumSeq, genWordDigit, genDaySeq, genColourOf],
       exam: ['Nombra los 10 colores en inglés', 'Cuenta del 1 al 10: one… ten', 'Dice los 7 días de la semana', "Saluda y responde a What's your name?"]
     },
     {
@@ -305,14 +392,24 @@ p { margin: 0; }
       items: [it('dad', 'papá', I.dad), it('mum', 'mamá', I.mum), it('brother', 'hermano', I.brother), it('sister', 'hermana', I.sister), it('family', 'familia', I.family), it('boy', 'niño', I.boy), it('girl', 'niña', I.girl), it('man', 'hombre', I.man), it('woman', 'mujer', I.woman), it('pet', 'mascota', I.pet)],
       phrases: [["I'm Julia.", "Yo soy Julia."], ["You're my friend.", "Tú eres mi amiga."], ["He's my dad.", "Él es mi papá. (He = chico)"], ["She's my mum.", "Ella es mi mamá. (She = chica)"], ["What's your name? My name's Julia.", "¿Cómo te llamas? Me llamo Julia."], ["How old are you? I'm six.", "¿Cuántos años tienes? Tengo seis."]],
       quiz: [
-        { q: "… my dad.", es: "¿He's o She's?", media: svg(I.dad), options: ["He's", "She's"], a: "He's" },
-        { q: "… my mum.", es: "¿He's o She's?", media: svg(I.mum), options: ["He's", "She's"], a: "She's" },
-        { q: "… my sister.", es: "¿He's o She's?", media: svg(I.sister), options: ["He's", "She's"], a: "She's" },
-        { q: "… my brother.", es: "¿He's o She's?", media: svg(I.brother), options: ["He's", "She's"], a: "He's" },
         { q: 'How old are you?', say: 'How old are you?', es: '¿Qué contestas?', options: ["I'm six.", "I'm Julia.", "She's my mum."], a: "I'm six." },
         { q: "What's your name?", say: "What's your name?", es: '¿Qué contestas?', options: ["My name's Julia.", "He's my dad.", "I'm six."], a: "My name's Julia." },
-        { q: 'Tú eres mi amiga.', es: '¿Cómo se dice en inglés?', options: ["You're my friend.", "I'm my friend.", "He's my friend."], a: "You're my friend." }
+        { q: "Hello! I'm Tom. What's your name?", say: "Hello! I'm Tom. What's your name?", es: 'Un niño nuevo te pregunta. ¿Qué contestas?', options: ["My name's Julia.", "She's my sister.", "You're Tom."], a: "My name's Julia." },
+        { q: 'Tú eres mi amiga.', es: '¿Cómo se dice en inglés?', options: ["You're my friend.", "I'm my friend.", "He's my friend."], a: "You're my friend." },
+        { q: 'Yo soy Julia.', es: '¿Cómo se dice en inglés?', options: ["I'm Julia.", "You're Julia.", "She's Julia."], a: "I'm Julia." },
+        { q: 'Él es mi hermano.', es: '¿Cómo se dice en inglés?', options: ["He's my brother.", "She's my brother.", "I'm my brother."], a: "He's my brother." },
+        { q: 'Ella es mi hermana.', es: '¿Cómo se dice en inglés?', options: ["She's my sister.", "He's my sister.", "You're my sister."], a: "She's my sister." },
+        { q: 'Ella es mi mamá.', es: '¿Cómo se dice en inglés?', options: ["She's my mum.", "He's my mum.", "She's my dad."], a: "She's my mum." },
+        { q: 'El hijo de tus papás es tu…', options: ['brother', 'sister', 'dad'], a: 'brother' },
+        { q: 'La hija de tus papás es tu…', options: ['sister', 'brother', 'mum'], a: 'sister' },
+        { q: 'Un perro o un gato que vive en casa es una…', options: ['pet', 'family', 'man'], a: 'pet' },
+        { q: 'Papá, mamá, mi hermano y yo somos una…', options: ['family', 'pet', 'boy'], a: 'family' },
+        { q: 'Cuando un niño se hace mayor es un…', options: ['man', 'woman', 'girl'], a: 'man' },
+        { q: 'Cuando una niña se hace mayor es una…', options: ['woman', 'man', 'boy'], a: 'woman' },
+        { q: '¿Para quién usamos She\'s?', options: ['mum, sister, girl', 'dad, brother, boy'], a: 'mum, sister, girl', fixed: true },
+        { q: '¿Para quién usamos He\'s?', options: ['dad, brother, boy', 'mum, sister, girl'], a: 'dad, brother, boy', fixed: true }
       ],
+      gens: [genHeShe, genWho, genAge],
       exam: ['Dice las 10 palabras mirando el dibujo', 'Lee y copia: dad, mum, brother, sister', "He's para chico, She's para chica", "Responde a What's your name? y How old are you?"]
     },
     {
@@ -334,9 +431,9 @@ p { margin: 0; }
       items: [it('in', 'dentro', I.inScene, 'pos', SC), it('on', 'encima', I.onScene, 'pos', SC), it('under', 'debajo', I.underScene, 'pos', SC)],
       phrases: [["Where's my pencil?", "¿Dónde está mi lápiz?"], ["It's in the bag.", "Está dentro de la mochila."], ["It's on the table.", "Está encima de la mesa."], ["It's under the chair.", "Está debajo de la silla."], ["What are they? They're pencils.", "¿Qué son? Son lápices."], ["Are they chairs? Yes, they are. / No, they aren't.", "¿Son sillas? Sí. / No."]],
       quiz: [
-        { q: "It's … the chair.", es: '¿Dónde está la pelota?', media: svg(I.underScene, SC, 'scene'), options: ['in', 'on', 'under'], a: 'under' },
-        { q: "It's … the table.", es: '¿Dónde está la pelota?', media: svg(I.onScene, SC, 'scene'), options: ['in', 'on', 'under'], a: 'on' },
-        { q: "It's … the bag.", es: '¿Dónde está la pelota?', media: svg(I.inScene, SC, 'scene'), options: ['in', 'on', 'under'], a: 'in' },
+        { q: "It's … the chair.", es: '¿Dónde está la pelota?', media: svg(I.underScene, SC, 'scene'), options: ['in', 'on', 'under'], a: 'under', sayAfter: "It's under the chair." },
+        { q: "It's … the table.", es: '¿Dónde está la pelota?', media: svg(I.onScene, SC, 'scene'), options: ['in', 'on', 'under'], a: 'on', sayAfter: "It's on the table." },
+        { q: "It's … the bag.", es: '¿Dónde está la pelota?', media: svg(I.inScene, SC, 'scene'), options: ['in', 'on', 'under'], a: 'in', sayAfter: "It's in the bag." },
         { q: "Where's my pencil?", say: "Where's my pencil?", es: '¿Qué contestas?', options: ["It's in the bag.", "They're pencils.", "I'm six."], a: "It's in the bag." },
         { q: 'What are they?', say: 'What are they?', media: rep(I.pencil, 3), options: ["They're pencils.", "They're chairs.", "It's a bag."], a: "They're pencils." },
         { q: 'Are they chairs?', say: 'Are they chairs?', media: rep(I.chair, 2), options: ['Yes, they are.', "No, they aren't."], a: 'Yes, they are.' },
@@ -349,10 +446,10 @@ p { margin: 0; }
       items: [it('apple', 'manzana', I.apple), it('banana', 'plátano', I.banana), it('grapes', 'uvas', I.grapes), it('orange', 'naranja', I.orange), it('watermelon', 'sandía', I.watermelon), it('beans', 'judías', I.beans), it('burger', 'hamburguesa', I.burger), it('carrot', 'zanahoria', I.carrot), it('egg', 'huevo', I.egg), it('rice', 'arroz', I.rice)],
       phrases: [["How many apples are there?", "¿Cuántas manzanas hay?"], ["There are three apples.", "Hay tres manzanas. (2 o más → There are)"], ["There's one banana.", "Hay un plátano. (1 → There's)"], ["There are two eggs.", "Hay dos huevos."]],
       quiz: [
-        { q: '… one egg.', es: "¿There's o There are?", media: svg(I.egg), options: ["There's", 'There are'], a: "There's" },
-        { q: '… two oranges.', es: "¿There's o There are?", media: rep(I.orange, 2), options: ["There's", 'There are'], a: 'There are' },
-        { q: '… three carrots.', es: "¿There's o There are?", media: rep(I.carrot, 3), options: ["There's", 'There are'], a: 'There are' },
-        { q: '… one banana.', es: "¿There's o There are?", media: svg(I.banana), options: ["There's", 'There are'], a: "There's" },
+        { q: '… one egg.', es: "¿There's o There are?", media: svg(I.egg), options: ["There's", 'There are'], a: "There's", sayAfter: "There's one egg.", fixed: true },
+        { q: '… two oranges.', es: "¿There's o There are?", media: rep(I.orange, 2), options: ["There's", 'There are'], a: 'There are', sayAfter: 'There are two oranges.', fixed: true },
+        { q: '… three carrots.', es: "¿There's o There are?", media: rep(I.carrot, 3), options: ["There's", 'There are'], a: 'There are', sayAfter: 'There are three carrots.', fixed: true },
+        { q: '… one banana.', es: "¿There's o There are?", media: svg(I.banana), options: ["There's", 'There are'], a: "There's", sayAfter: "There's one banana.", fixed: true },
         { q: 'How many apples are there?', say: 'How many apples are there?', media: rep(I.apple, 3), options: ['There are three apples.', 'There are two apples.', "There's one apple."], a: 'There are three apples.' },
         { q: 'How many burgers are there?', say: 'How many burgers are there?', media: rep(I.burger, 2), options: ['There are two burgers.', 'There are four burgers.', "There's one burger."], a: 'There are two burgers.' }
       ],
@@ -456,27 +553,67 @@ p { margin: 0; }
 
   /* ---------- storage (per-browser convenience only) ---------- */
   var KEY = 'mochila-julia-v1';
-  var store = { stars: {}, checks: {} };
-  try { var raw = localStorage.getItem(KEY); if (raw) { var p = JSON.parse(raw); if (p && typeof p === 'object') { store.stars = p.stars || {}; store.checks = p.checks || {}; } } } catch (e) {}
+  var store = { stars: {}, checks: {}, recent: {}, voice: '', rate: 0.75 };
+  try { var raw = localStorage.getItem(KEY); if (raw) { var p = JSON.parse(raw); if (p && typeof p === 'object') { store.stars = p.stars || {}; store.checks = p.checks || {}; store.recent = p.recent || {}; store.voice = p.voice || ''; store.rate = p.rate || 0.75; } } } catch (e) {}
   function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} }
 
   /* ---------- sound ---------- */
   var canSpeak = false;
   try { canSpeak = 'speechSynthesis' in window && typeof SpeechSynthesisUtterance === 'function'; } catch (e) {}
   var voices = [];
-  function loadVoices() { try { voices = window.speechSynthesis.getVoices() || []; } catch (e) {} }
-  if (canSpeak) { loadVoices(); try { window.speechSynthesis.onvoiceschanged = loadVoices; } catch (e) {} }
-  function say(text) {
-    if (!canSpeak || !text) return;
-    try {
-      var u = new SpeechSynthesisUtterance(text);
-      var v = voices.filter(function (x) { return /en[-_]GB/i.test(x.lang); })[0] || voices.filter(function (x) { return /^en/i.test(x.lang); })[0];
-      if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = 'en-GB'; }
-      u.rate = 0.85;
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(u);
-    } catch (e) {}
+  /* Prefer a British woman's voice: known female voices on iPad/iPhone, Android, Windows/Edge and Chrome. */
+  var FEMALE = /(female|libby|sonia|maisie|hollie|bella|abbi|olivia|hazel|susan|kate|serena|stephanie|martha|amy|emma|alice|fiona|tessa|karen|moira|samantha|gba|gbc|gbg)/i;
+  var MALE = /(\bmale\b|daniel|george|arthur|oliver|ryan|thomas|ethan|noah|alfie|elliot|harry|brian|james|gbb|gbd)/i;
+  var NICE = /(natural|neural|premium|enhanced|mejorad|online|wavenet)/i;
+  function scoreVoice(v) {
+    var n = (v.name || '') + ' ' + (v.voiceURI || ''), l = (v.lang || '').replace('_', '-'), s = 0;
+    if (/^en-GB/i.test(l)) s += 100; else if (/^en/i.test(l)) s += 40; else return -1;
+    if (/female/i.test(n)) s += 40; else if (MALE.test(n)) s -= 50; else if (FEMALE.test(n)) s += 35;
+    if (/maisie/i.test(n)) s += 10;
+    if (NICE.test(n)) s += 15;
+    return s;
   }
+  function englishVoices() { return voices.filter(function (v) { return scoreVoice(v) >= 0; }).sort(function (a, b) { return scoreVoice(b) - scoreVoice(a); }); }
+  function currentVoice() {
+    var list = englishVoices();
+    if (store.voice) { var m = list.filter(function (v) { return v.voiceURI === store.voice; })[0]; if (m) return m; }
+    return list[0] || null;
+  }
+  function speakRate() { var r = parseFloat(store.rate); return r >= 0.5 && r <= 1.1 ? r : 0.75; }
+  function rateName(r) { return r <= 0.65 ? 'muy lenta' : r <= 0.8 ? 'pausada' : r <= 0.9 ? 'normal' : 'rápida'; }
+  function utter(text) {
+    var u = new SpeechSynthesisUtterance(text), v = currentVoice();
+    if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = 'en-GB'; }
+    u.rate = speakRate(); u.pitch = 1.08;
+    return u;
+  }
+  function say() {
+    var parts = Array.prototype.slice.call(arguments).filter(Boolean);
+    if (!canSpeak || !parts.length) return;
+    try { window.speechSynthesis.cancel(); parts.forEach(function (t) { window.speechSynthesis.speak(utter(t)); }); } catch (e) {}
+  }
+  function fillVoiceSelect() {
+    var sel = document.getElementById('voice'), note = document.getElementById('vp-note');
+    if (!sel || !note) return;
+    var list = englishVoices(), cv = currentVoice();
+    if (!canSpeak || !list.length) {
+      sel.innerHTML = '<option value="">Sin voces en inglés</option>'; sel.disabled = true;
+      note.textContent = canSpeak ? 'Todavía no aparecen voces en inglés. Si sigue así, instala una voz «Inglés (Reino Unido)» en los ajustes de voz del dispositivo.' : 'Este navegador no puede leer en voz alta. Los juegos usarán «Lee y elige».';
+      return;
+    }
+    sel.disabled = false;
+    sel.innerHTML = list.map(function (v, i) { return '<option value="' + esc(v.voiceURI) + '"' + (cv && v.voiceURI === cv.voiceURI ? ' selected' : '') + '>' + esc(v.name) + (i === 0 ? ' · recomendada' : '') + '</option>'; }).join('');
+    var gb = /^en-GB/i.test((list[0].lang || '').replace('_', '-'));
+    note.textContent = gb ? 'Elegimos la voz británica de mujer más clara de este dispositivo. Puedes probar otra.' : 'Este dispositivo no tiene voz británica. Puedes instalar una «Inglés (Reino Unido)» en los ajustes de voz del sistema.';
+  }
+  function loadVoices() { try { voices = window.speechSynthesis.getVoices() || []; } catch (e) { voices = []; } fillVoiceSelect(); }
+  if (canSpeak) { loadVoices(); try { window.speechSynthesis.onvoiceschanged = loadVoices; } catch (e) {} }
+  (function initRate() {
+    var r = document.getElementById('rate'), l = document.getElementById('rate-label');
+    if (r) r.value = speakRate();
+    if (l) l.textContent = rateName(speakRate());
+  })();
+  var PRAISE = [['Well done!', '¡Muy bien!'], ['Great job!', '¡Buen trabajo!'], ['Brilliant!', '¡Genial!'], ['Fantastic!', '¡Fantástico!'], ['Super!', '¡Súper!'], ['Excellent!', '¡Excelente!']];
   var actx = null;
   function tone(freqs) {
     try {
@@ -561,21 +698,79 @@ p { margin: 0; }
   }
 
   /* ---------- game ---------- */
-  function buildQuiz(t) {
-    var custom = shuffle(t.quiz).slice(0, 4);
-    var n = 8 - custom.length;
-    var items = shuffle(t.items);
-    var out = [];
-    for (var i = 0; i < n; i++) {
-      var x = items[i % items.length];
-      var pool = t.items.filter(function (y) { return y.en !== x.en && y.g === x.g; });
-      if (pool.length < 2) pool = t.items.filter(function (y) { return y.en !== x.en; });
-      if (x.s) { var withS = pool.filter(function (y) { return y.s; }); if (withS.length >= 2) pool = withS; }
-      out.push({ kind: i % 2 ? 'tr' : 'ls', x: x, opts: shuffle([x].concat(shuffle(pool).slice(0, 2))) });
-    }
-    return shuffle(out.concat(custom.map(function (c) { var o = {}; for (var k in c) o[k] = c[k]; o.kind = 'c'; o.options = shuffle(c.options.length === 2 ? c.options : c.options); return o; })));
+  var ROUND = 10;
+  function copy(o) { var r = {}; for (var k in o) r[k] = o[k]; return r; }
+  function itemOpts(t, x, pics) {
+    var pool = t.items.filter(function (y) { return y.en !== x.en && y.g === x.g; });
+    if (pool.length < 2) pool = t.items.filter(function (y) { return y.en !== x.en; });
+    if (pics) { pool = pool.filter(function (y) { return y.s; }); if (pool.length < 2) return null; }
+    if (pool.length < 2) return null;
+    return shuffle([x].concat(shuffle(pool).slice(0, 2)));
   }
-  function answerOf(q) { return q.kind === 'c' ? q.a : q.x.en; }
+  function misspell(word) {
+    var letters = word.split(''), idx = [], out = {}, tries = 0;
+    letters.forEach(function (c, i) { if (/[a-z]/i.test(c)) idx.push(i); });
+    if (idx.length < 3) return [];
+    while (Object.keys(out).length < 2 && tries < 60) {
+      tries++;
+      var a = letters.slice(), r = Math.random(), i = idx[Math.floor(Math.random() * idx.length)];
+      if (r < 0.35 && idx.indexOf(i + 1) !== -1 && a[i] !== a[i + 1]) { var tmp = a[i]; a[i] = a[i + 1]; a[i + 1] = tmp; }
+      else if (r < 0.65 && /[aeiou]/i.test(a[i])) { a[i] = pick('aeiou'.replace(a[i].toLowerCase(), '').split('')); }
+      else if (r < 0.85) { a.splice(i, 1); }
+      else { a.splice(i, 0, a[i]); }
+      var w = a.join('');
+      if (w.toLowerCase() !== word.toLowerCase()) out[w] = 1;
+    }
+    return Object.keys(out).slice(0, 2);
+  }
+  /* Every possible question for a topic; a round picks 10 at random, avoiding the last two rounds. */
+  function candidates(t) {
+    var c = [];
+    t.items.forEach(function (x) {
+      var o;
+      if (x.s) {
+        if (canSpeak && (o = itemOpts(t, x, true))) c.push({ key: 'ls|' + x.en, kind: 'ls', target: x.en, x: x, opts: o });
+        if ((o = itemOpts(t, x, true))) c.push({ key: 'ws|' + x.en, kind: 'ws', target: x.en, x: x, opts: o });
+        if ((o = itemOpts(t, x, false))) c.push({ key: 'pw|' + x.en, kind: 'pw', target: x.en, x: x, opts: o });
+        if ((o = itemOpts(t, x, false))) {
+          var yes = Math.random() < 0.5;
+          c.push({ key: 'tf|' + x.en, kind: 'tf', target: x.en, x: x, shown: yes ? x : o.filter(function (y) { return y !== x; })[0], a: yes ? 'Yes' : 'No' });
+        }
+      } else if (canSpeak && (o = itemOpts(t, x, false))) {
+        c.push({ key: 'ls|' + x.en, kind: 'ls', target: x.en, x: x, opts: o });
+      }
+      if ((o = itemOpts(t, x, false))) c.push({ key: 'tr|' + x.en, kind: 'tr', target: x.en, x: x, opts: o });
+      var ms = misspell(x.en);
+      if (ms.length === 2 && x.en.length <= 16) c.push({ key: 'sp|' + x.en, kind: 'sp', target: x.en, x: x, opts: shuffle([x.en].concat(ms)) });
+    });
+    t.quiz.forEach(function (q, i) { var o = copy(q); o.key = 'c|' + i; o.kind = 'c'; o.target = 'c' + i; c.push(o); });
+    (t.gens || []).forEach(function (g) { for (var k = 0; k < 3; k++) { var o = g(); o.kind = 'c'; o.target = o.key; o.key = 'g|' + o.key; c.push(o); } });
+    return c;
+  }
+  function buildQuiz(t) {
+    var all = shuffle(candidates(t));
+    var recent = (store.recent && store.recent[t.id]) || [];
+    var caps = { ls: 3, ws: 2, pw: 2, tf: 2, tr: 2, sp: 2, c: 5 };
+    var out = [], used = {}, kinds = {};
+    function pass(skipRecent, useCaps) {
+      for (var i = 0; i < all.length && out.length < ROUND; i++) {
+        var q = all[i];
+        if (q._taken || used[q.target]) continue;
+        if (skipRecent && recent.indexOf(q.key) !== -1) continue;
+        if (useCaps && (kinds[q.kind] || 0) >= (caps[q.kind] || 2)) continue;
+        q._taken = true; used[q.target] = 1; kinds[q.kind] = (kinds[q.kind] || 0) + 1; out.push(q);
+      }
+    }
+    pass(true, true); pass(false, true); pass(true, false); pass(false, false);
+    store.recent[t.id] = out.map(function (q) { return q.key; }).concat(recent).slice(0, ROUND * 2);
+    save();
+    return shuffle(out).map(function (q) { if (q.kind === 'c' && !q.fixed) q.options = shuffle(q.options); return q; });
+  }
+  function answerOf(q) { return q.kind === 'c' || q.kind === 'tf' ? q.a : q.x.en; }
+  function spokenAnswer(q) {
+    if (q.kind === 'c') return q.sp ? null : (q.sayAfter || q.a);
+    return q.x.en;
+  }
 
   function startQuiz() { Q = { qs: buildQuiz(cur), i: 0, score: 0, res: [] }; renderQ(); }
 
@@ -584,23 +779,39 @@ p { margin: 0; }
     Q.answered = false;
     var dots = Q.qs.map(function (_, k) { return '<span class="dot' + (k < Q.i ? (Q.res[k] ? ' ok' : ' ko') : (k === Q.i ? ' now' : '')) + '"></span>'; }).join('');
     var head = '', opts = '', pics = false, speakNow = null;
+    function picOpt(o, k) { return '<button class="opt" data-val="' + esc(o.en) + '" aria-label="Opción ' + (k + 1) + '">' + ico(o, o.vb === SC ? 'scene' : 'ico') + '</button>'; }
+    function txtOpt(v, label, cls) { return '<button class="opt' + (cls ? ' ' + cls : '') + '" data-val="' + esc(v) + '"><span>' + label + '</span></button>'; }
+    function pic(x) { return x.s ? '<div class="media">' + ico(x, x.vb === SC ? 'scene' : 'ico') + '</div>' : ''; }
+    function spkBtn(text, big) { return canSpeak ? '<button class="spk' + (big ? ' big' : '') + '" data-say="' + esc(text) + '" aria-label="Escuchar otra vez">' + SPK + '</button>' : ''; }
     if (q.kind === 'ls') {
       pics = q.opts.every(function (o) { return o.s; });
-      if (canSpeak) {
-        head = '<p class="prompt">Escucha y elige</p><button class="spk big" data-say="' + esc(q.x.en) + '" aria-label="Escuchar otra vez">' + SPK + '</button>';
-        opts = q.opts.map(function (o, k) { return '<button class="opt" data-val="' + esc(o.en) + '"' + (pics ? ' aria-label="Opción ' + (k + 1) + '"' : '') + '>' + (pics ? ico(o, (o.vb === SC ? 'scene' : 'ico')) : '<span>' + o.en + '</span>') + '</button>'; }).join('');
-        speakNow = q.x.en;
-      } else {
-        head = '<p class="prompt">Lee y elige</p><p class="big-word">' + q.x.en + '</p>';
-        opts = q.opts.map(function (o, k) { return '<button class="opt" data-val="' + esc(o.en) + '"' + (pics ? ' aria-label="Opción ' + (k + 1) + '"' : '') + '>' + (pics ? ico(o, (o.vb === SC ? 'scene' : 'ico')) : '<span>' + o.es + '</span>') + '</button>'; }).join('');
-      }
+      head = '<p class="prompt">Escucha y elige</p>' + spkBtn(q.x.en, true);
+      opts = q.opts.map(function (o, k) { return pics ? picOpt(o, k) : txtOpt(o.en, o.en); }).join('');
+      speakNow = q.x.en;
+    } else if (q.kind === 'ws') {
+      pics = true;
+      head = '<p class="prompt">Lee y elige el dibujo</p><p class="big-word">' + q.x.en + '</p>';
+      opts = q.opts.map(picOpt).join('');
+    } else if (q.kind === 'pw') {
+      head = '<p class="prompt">What is it?</p><p class="hint">¿Qué es? Lee y elige.</p>' + pic(q.x);
+      opts = q.opts.map(function (o) { return txtOpt(o.en, o.en); }).join('');
+      speakNow = 'What is it?';
+    } else if (q.kind === 'tf') {
+      head = '<p class="prompt">¿Está bien?</p>' + pic(q.x) + '<p class="big-word">' + q.shown.en + '</p>' + spkBtn(q.shown.en);
+      opts = txtOpt('Yes', 'Yes · sí') + txtOpt('No', 'No · no');
+      speakNow = q.shown.en;
+    } else if (q.kind === 'sp') {
+      head = '<p class="prompt">¿Cuál está bien escrita?</p>' + (q.x.s ? pic(q.x) : '<p class="hint">' + q.x.es + '</p>') + spkBtn(q.x.en);
+      opts = q.opts.map(function (w) { return txtOpt(w, esc(w), 'misspell'); }).join('');
+      speakNow = q.x.en;
     } else if (q.kind === 'tr') {
-      head = '<p class="prompt">¿Cómo se dice en inglés?</p>' + (q.x.s ? '<div class="media">' + ico(q.x, q.x.vb === SC ? 'scene' : 'ico') + '</div>' : '') + '<p class="big-word">' + q.x.es + '</p>';
-      opts = q.opts.map(function (o) { return '<button class="opt" data-val="' + esc(o.en) + '"><span>' + o.en + '</span></button>'; }).join('');
+      head = '<p class="prompt">¿Cómo se dice en inglés?</p>' + pic(q.x) + '<p class="big-word">' + q.x.es + '</p>';
+      opts = q.opts.map(function (o) { return txtOpt(o.en, o.en); }).join('');
     } else {
-      head = (q.media ? '<div class="media">' + q.media + '</div>' : '') + '<p class="prompt">' + q.q + '</p>' + (q.es ? '<p class="hint">' + q.es + '</p>' : '') +
-        (q.say && canSpeak ? '<button class="spk" data-say="' + esc(q.say) + '" aria-label="Escuchar la pregunta">' + SPK + '</button>' : '');
-      opts = q.options.map(function (o) { return '<button class="opt" data-val="' + esc(o) + '"><span>' + o + '</span></button>'; }).join('');
+      head = (q.media ? '<div class="media' + (q.mediaCls ? ' ' + q.mediaCls : '') + '">' + q.media + '</div>' : '') +
+        (q.big ? '<p class="big-word">' + q.q + '</p>' : '<p class="prompt">' + q.q + '</p>') +
+        (q.es ? '<p class="hint">' + q.es + '</p>' : '') + (q.say ? spkBtn(q.say) : '');
+      opts = q.options.map(function (o) { return txtOpt(o, o); }).join('');
       speakNow = q.say || null;
     }
     pane.innerHTML = '<div class="qcard"><div class="dots" role="img" aria-label="Pregunta ' + (Q.i + 1) + ' de ' + Q.qs.length + '">' + dots + '</div>' + head +
@@ -616,12 +827,14 @@ p { margin: 0; }
     if (!ok) btn.classList.add('wrong');
     Q.res[Q.i] = ok; if (ok) Q.score++;
     tone(ok ? [660, 880] : [300, 220]);
-    if (!(q.kind === 'c' && q.sp)) setTimeout(function () { say(right); }, 420);
+    var pr = pick(PRAISE), spoken = spokenAnswer(q);
+    setTimeout(function () { if (ok) say(pr[0], spoken); else say(spoken); }, 420);
     var fb = document.getElementById('fb');
     fb.hidden = false;
     fb.className = 'feedback ' + (ok ? 'good' : 'bad');
     var last = Q.i >= Q.qs.length - 1;
-    fb.innerHTML = '<span>' + (ok ? pick(['¡Muy bien!', '¡Genial!', '¡Perfecto!', '¡Bravo, Julia!']) : '¡Casi! Es: <b>' + right + '</b>') + '</span>' +
+    var extra = q.kind === 'tf' ? ' (es <b>' + q.x.en + '</b>)' : (q.sayAfter ? ' · ' + q.sayAfter : '');
+    fb.innerHTML = '<span>' + (ok ? pr[0] + ' · ' + pr[1] + (q.sayAfter ? ' · ' + q.sayAfter : '') : '¡Casi! Es: <b>' + right + '</b>' + extra) + '</span>' +
       '<button class="next" data-action="next">' + (last ? 'Ver estrellas' : 'Siguiente') + ' ' + ARR + '</button>';
     var nb = fb.querySelector('.next'); if (nb) nb.focus({ preventScroll: true });
   }
@@ -634,7 +847,7 @@ p { margin: 0; }
 
   function renderEnd() {
     var t = cur, sc = Q.score, total = Q.qs.length;
-    var s = sc === total ? 3 : sc >= 6 ? 2 : sc >= 3 ? 1 : 0;
+    var s = sc === total ? 3 : sc >= total - 2 ? 2 : sc >= Math.ceil(total / 2) ? 1 : 0;
     var prev = store.stars[t.id] || 0, record = s > prev;
     if (record) { store.stars[t.id] = s; save(); }
     var msg = s === 3 ? '¡Perfecto, Julia!' : s === 2 ? '¡Muy bien!' : s === 1 ? '¡Bien! Un poco más y lo bordas.' : '¡Sigue practicando!';
@@ -649,9 +862,23 @@ p { margin: 0; }
   }
 
   /* ---------- events ---------- */
+  document.addEventListener('input', function (e) {
+    var el = e.target;
+    if (el.id !== 'rate') return;
+    store.rate = parseFloat(el.value); save();
+    var l = document.getElementById('rate-label'); if (l) l.textContent = rateName(speakRate());
+  });
   document.addEventListener('click', function (e) {
     var b = e.target.closest('button');
     if (!b) return;
+    if (b.id === 'voicebtn' || b.id === 'voiceclose') {
+      var vp = document.getElementById('voicepanel'), vb = document.getElementById('voicebtn');
+      vp.hidden = b.id === 'voiceclose' ? true : !vp.hidden;
+      vb.setAttribute('aria-expanded', String(!vp.hidden));
+      if (!vp.hidden) loadVoices();
+      return;
+    }
+    if (b.id === 'voicetest') { say('Hello, Julia!', "Let's learn English together."); return; }
     if (b.dataset.topic) { openTopic(b.dataset.topic, 'learn'); return; }
     if (b.dataset.action === 'home') { renderHome(); window.scrollTo(0, 0); return; }
     if (b.dataset.action === 'next') { next(); return; }
@@ -664,6 +891,8 @@ p { margin: 0; }
   });
   document.addEventListener('change', function (e) {
     var el = e.target;
+    if (el.id === 'voice') { store.voice = el.value; save(); say('Hello, Julia!'); return; }
+    if (el.id === 'rate') { say('Hello, Julia!'); return; }
     if (!el.matches || !el.matches('[data-chk]')) return;
     var id = el.getAttribute('data-chk'), i = +el.getAttribute('data-i');
     var arr = store.checks[id] || [];
